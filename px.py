@@ -18,7 +18,7 @@ def cli():
 
 @cli.command()
 @click.option('-s', '--scheme', type=str, help='The scheme used by the server.', default='https')
-@click.option('-h', '--host', type=str, help='The host of your Panomics server.', default='localhost:5001')
+@click.option('-h', '--host', type=str, help='The host of your Panomics server.', default='platform.panomics.bio')
 @click.option('-p', '--port', type=int, help='The server port.', default=443)
 @click.option('-k', '--key', type=str, help='Your api key.', required=True)
 def login(scheme, host, port, key):
