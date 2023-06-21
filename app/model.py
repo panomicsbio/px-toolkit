@@ -6,5 +6,11 @@ from dataclasses_json import dataclass_json, LetterCase
 @dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class AuthConfig:
-    api_key: str
-    host: str
+    token: str
+    url: str
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class LoginResponse:
+    token: str
