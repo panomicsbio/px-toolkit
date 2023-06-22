@@ -45,7 +45,6 @@ def upload_samples(type_: Literal['RNA-seq', 'scRNA-seq'], format_: Literal['fla
     """
 
     auth_config = app.get_auth()
-    click.echo(auth_config)
 
     files_to_import = []
     for f in os.listdir(input_dir):
