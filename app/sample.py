@@ -5,8 +5,11 @@ from typing import Literal
 
 import pandas as pd
 
+from app.api import api_upload_sample
+from app.model import AuthConfig
 
-def import_sample(filename: Path, sample_type: Literal['RNA-seq', 'scRNA-seq'],
+
+def upload_sample(auth_config: AuthConfig, filename: Path, sample_type: Literal['RNA-seq', 'scRNA-seq'],
                   file_format: Literal['flat', '2D'], gene_id_col: str, raw_count_col: str):
     workdir = f"{os.path.join(os.path.dirname(filename), 'workdir')}"
     if not os.path.exists(workdir):
@@ -16,20 +19,20 @@ def import_sample(filename: Path, sample_type: Literal['RNA-seq', 'scRNA-seq'],
     try:
         if sample_type == 'RNA-seq':
             if file_format == '2D':
-                __import_rna_2d(extracted_file_path, gene_id_col)
+                __upload_rna_2d(auth_config, extracted_file_path, gene_id_col)
             elif file_format == 'flat':
-                __import_rna_flat(extracted_file_path, gene_id_col, raw_count_col)
+                __upload_rna_flat(auth_config, extracted_file_path, gene_id_col, raw_count_col)
             else:
                 raise ValueError(f'invalid file format: {file_format}')
         elif sample_type == 'scRNA-seq':
-            __import_sc_rna(filename)
+            __upload_sc_rna(auth_config, filename)
         else:
             raise ValueError(f'unsupported sample type: {sample_type}')
     finally:
         shutil.rmtree(os.path.join(os.path.dirname(filename), "workdir"))
 
 
-def __import_rna_2d(filepath: str, gene_id_col: str):
+def __upload_rna_2d(auth_config: AuthConfig, filepath: str, gene_id_col: str) -> ():
     df = pd.read_csv(filepath, sep='\t')
     if gene_id_col != 'gene_id':
         df = df.rename(columns={gene_id_col: "gene_id"})
@@ -37,12 +40,15 @@ def __import_rna_2d(filepath: str, gene_id_col: str):
         sample_df = df[['gene_id', sample_name]].rename(columns={sample_name: 'raw_count'})
         sample_df.to_csv(f'{os.path.dirname(filepath)}/{sample_name}.csv', index=False)
         shutil.make_archive(f'{os.path.dirname(filepath)}/{sample_name}.csv', format='gz')
-        # TODO: make API call
-        os.remove(f'{os.path.dirname(filepath)}/{sample_name}.csv')
-        os.remove(f'{os.path.dirname(filepath)}/{sample_name}.csv.gz')
+        try:
+            api_upload_sample(auth_config, filename=f'{os.path.dirname(filepath)}/{sample_name}.csv',
+                              sample_type='RNA-seq')
+        finally:
+            os.remove(f'{os.path.dirname(filepath)}/{sample_name}.csv')
+            os.remove(f'{os.path.dirname(filepath)}/{sample_name}.csv.gz')
 
 
-def __import_rna_flat(filepath: str, gene_id_col: str, raw_count_col: str):
+def __upload_rna_flat(auth_config: AuthConfig, filepath: str, gene_id_col: str, raw_count_col: str):
     df = pd.read_csv(filepath, sep='\t')
     df = df[[gene_id_col, raw_count_col]]
     if gene_id_col != 'gene_id':
@@ -51,10 +57,13 @@ def __import_rna_flat(filepath: str, gene_id_col: str, raw_count_col: str):
         df = df.rename(columns={raw_count_col: "raw_count"})
     df.to_csv(f'{os.path.splitext(filepath)[0]}.csv', index=False)
     shutil.make_archive(f'{os.path.splitext(filepath)[0]}.csv', format='gz')
-    # TODO: make API call
-    os.remove(f'{os.path.splitext(filepath)[0]}.csv')
-    os.remove(f'{os.path.splitext(filepath)[0]}.csv.gz')
+    try:
+        api_upload_sample(auth_config, filename=f'{os.path.splitext(filepath)[0]}.csv',
+                          sample_type='RNA-seq')
+    finally:
+        os.remove(f'{os.path.splitext(filepath)[0]}.csv')
+        os.remove(f'{os.path.splitext(filepath)[0]}.csv.gz')
 
 
-def __import_sc_rna(filename: Path):
+def __upload_sc_rna(auth_config: AuthConfig, filename: Path):
     pass

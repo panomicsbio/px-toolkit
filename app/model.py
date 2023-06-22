@@ -14,3 +14,10 @@ class AuthConfig:
 @dataclass
 class LoginResponse:
     token: str
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class UploadSampleResponse:
+    error: bool
+    errorMessage: str

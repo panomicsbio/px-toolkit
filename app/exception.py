@@ -6,3 +6,8 @@ class ApiException(Exception):
 class AuthenticationFailedException(Exception):
     """Raised when authentication fails"""
     pass
+
+
+class SampleUploadFailedException(Exception):
+    """Raised when sample upload fails"""
+    pass

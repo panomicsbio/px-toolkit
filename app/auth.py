@@ -19,3 +19,11 @@ def login(url: str, key: str):
     with open(auth_conf_file, 'wt', encoding='utf-8') as f:
         f.write(auth_conf.to_json())
     click.echo(f"credentials stored in {auth_conf_file}")
+
+
+def get_auth() -> AuthConfig | None:
+    try:
+        with open(os.path.join(Path.home(), '.panomics', 'auth'), 'rt') as f:
+            return AuthConfig.from_json(f.read())
+    except:
+        return None
