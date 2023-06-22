@@ -14,10 +14,10 @@ def upload_sample(auth_config: AuthConfig, filename: Path, sample_type: Literal[
     workdir = f"{os.path.join(os.path.dirname(filename), 'workdir')}"
     if not os.path.exists(workdir):
         os.makedirs(workdir)
-    shutil.unpack_archive(filename, extract_dir=workdir)
-    extracted_file_path = os.path.join(workdir, filename.stem)
     try:
         if sample_type == 'RNA-seq':
+            shutil.unpack_archive(filename, extract_dir=workdir)
+            extracted_file_path = os.path.join(workdir, filename.stem)
             if file_format == '2D':
                 __upload_rna_2d(auth_config, extracted_file_path, gene_id_col)
             elif file_format == 'flat':
@@ -66,4 +66,4 @@ def __upload_rna_flat(auth_config: AuthConfig, filepath: str, gene_id_col: str, 
 
 
 def __upload_sc_rna(auth_config: AuthConfig, filename: Path):
-    pass
+    api_upload_sample(auth_config, filename=str(filename), sample_type='scRNA-seq')
