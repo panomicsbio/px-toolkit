@@ -61,7 +61,8 @@ def upload_samples(organism: Literal['human', 'mouse'], type_: Literal['RNA-seq'
         with alive_bar(len(files_to_import)) as bar:
             for f in files_to_import:
                 try:
-                    app.upload_sample(auth_config, Path(f), type_, gene_id_col, gene_symbol_col, raw_count_col)
+                    app.upload_sample(auth_config, Path(f), organism, type_, gene_id_col, gene_symbol_col,
+                                      raw_count_col)
                 except:
                     logging.exception(f'error uploading sample {f}, type {type_}')
                     failed_files.append(f)
