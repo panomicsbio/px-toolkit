@@ -21,3 +21,9 @@ class LoginResponse:
 class UploadSampleResponse:
     error: bool
     errorMessage: str
+
+
+organism_mapping = {
+    'human': 'NCBITaxon_9606',
+    'mouse': 'NCBITaxon_10090'
+}

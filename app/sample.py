@@ -1,69 +1,30 @@
 import os.path
-import shutil
+import uuid
 from pathlib import Path
 from typing import Literal
 
-import pandas as pd
+import requests
 
-from app.api import api_upload_sample
-from app.model import AuthConfig
-
-
-def upload_sample(auth_config: AuthConfig, filename: Path, sample_type: Literal['RNA-seq', 'scRNA-seq'],
-                  file_format: Literal['flat', '2D'], gene_id_col: str, raw_count_col: str):
-    workdir = f"{os.path.join(os.path.dirname(filename), 'workdir')}"
-    if not os.path.exists(workdir):
-        os.makedirs(workdir)
-    try:
-        if sample_type == 'RNA-seq':
-            shutil.unpack_archive(filename, extract_dir=workdir)
-            extracted_file_path = os.path.join(workdir, filename.stem)
-            if file_format == '2D':
-                __upload_rna_2d(auth_config, extracted_file_path, gene_id_col)
-            elif file_format == 'flat':
-                __upload_rna_flat(auth_config, extracted_file_path, gene_id_col, raw_count_col)
-            else:
-                raise ValueError(f'invalid file format: {file_format}')
-        elif sample_type == 'scRNA-seq':
-            __upload_sc_rna(auth_config, filename)
-        else:
-            raise ValueError(f'unsupported sample type: {sample_type}')
-    finally:
-        shutil.rmtree(os.path.join(os.path.dirname(filename), "workdir"))
+from app import UploadSampleResponse
+from app.exception import SampleUploadFailedException
+from app.model import AuthConfig, organism_mapping
 
 
-def __upload_rna_2d(auth_config: AuthConfig, filepath: str, gene_id_col: str) -> ():
-    df = pd.read_csv(filepath, sep='\t')
-    if gene_id_col != 'gene_id':
-        df = df.rename(columns={gene_id_col: "gene_id"})
-    for sample_name in df.columns[1:]:
-        sample_df = df[['gene_id', sample_name]].rename(columns={sample_name: 'raw_count'})
-        sample_df.to_csv(f'{os.path.dirname(filepath)}/{sample_name}.csv', index=False)
-        shutil.make_archive(f'{os.path.dirname(filepath)}/{sample_name}.csv', format='gz')
-        try:
-            api_upload_sample(auth_config, filename=f'{os.path.dirname(filepath)}/{sample_name}.csv',
-                              sample_type='RNA-seq')
-        finally:
-            os.remove(f'{os.path.dirname(filepath)}/{sample_name}.csv')
-            os.remove(f'{os.path.dirname(filepath)}/{sample_name}.csv.gz')
-
-
-def __upload_rna_flat(auth_config: AuthConfig, filepath: str, gene_id_col: str, raw_count_col: str):
-    df = pd.read_csv(filepath, sep='\t')
-    df = df[[gene_id_col, raw_count_col]]
-    if gene_id_col != 'gene_id':
-        df = df.rename(columns={gene_id_col: "gene_id"})
-    if raw_count_col != 'raw_count':
-        df = df.rename(columns={raw_count_col: "raw_count"})
-    df.to_csv(f'{os.path.splitext(filepath)[0]}.csv', index=False)
-    shutil.make_archive(f'{os.path.splitext(filepath)[0]}.csv', format='gz')
-    try:
-        api_upload_sample(auth_config, filename=f'{os.path.splitext(filepath)[0]}.csv',
-                          sample_type='RNA-seq')
-    finally:
-        os.remove(f'{os.path.splitext(filepath)[0]}.csv')
-        os.remove(f'{os.path.splitext(filepath)[0]}.csv.gz')
-
-
-def __upload_sc_rna(auth_config: AuthConfig, filename: Path):
-    api_upload_sample(auth_config, filename=str(filename), sample_type='scRNA-seq')
+def upload_sample(auth_config: AuthConfig, filename: Path, organism: Literal['human', 'mouse'],
+                  sample_type: Literal['RNA-seq', 'scRNA-seq'],
+                  gene_id_col: str, gene_symbol_col: str, raw_count_col: str):
+    files = {'file': open(filename, 'rb')}
+    data = {'sampleName': os.path.basename(filename).split(".")[0],
+            'sampleType': sample_type,
+            'organism': organism_mapping[organism],
+            'geneIdCol': gene_id_col,
+            'geneSymbolCol': gene_symbol_col,
+            'rawCountCol': raw_count_col,
+            'requestId': str(uuid.uuid4())}
+    headers = {'Authorization': f'Bearer {auth_config.token}'}
+    resp = requests.post(f"{auth_config.url}/private/sample/upload", data=data, files=files, headers=headers)
+    if resp.status_code != 200:
+        raise SampleUploadFailedException(f'response code = {resp.status_code}')
+    usr: UploadSampleResponse = UploadSampleResponse.from_dict(resp.json())
+    if usr.error:
+        raise SampleUploadFailedException(usr.errorMessage)

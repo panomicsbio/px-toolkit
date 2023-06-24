@@ -2,17 +2,21 @@ import os
 from pathlib import Path
 
 import click
+import requests
 
-from app.api import api_login
+from app import LoginResponse
+from app.exception import AuthenticationFailedException
 from app.model import AuthConfig
 
 
 def login(url: str, key: str):
     conf_dir = os.path.join(Path.home(), ".panomics")
-    if not os.path.exists(conf_dir):
-        os.makedirs(conf_dir)
 
-    login_resp = api_login(url, key)
+    payload = {"key": key}
+    resp = requests.post(f"{url}/api/login", json=payload)
+    if resp.status_code != 200:
+        raise AuthenticationFailedException(f"response code = {resp.status_code}")
+    login_resp = LoginResponse.from_dict(resp.json())
 
     auth_conf = AuthConfig(token=login_resp.token, url=url)
     auth_conf_file = os.path.join(conf_dir, "auth")
