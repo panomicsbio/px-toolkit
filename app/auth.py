@@ -4,9 +4,8 @@ from pathlib import Path
 import click
 import requests
 
-from app import LoginResponse
 from app.exception import AuthenticationFailedException
-from app.model import AuthConfig
+from app.model import AuthConfig, LoginResponse
 
 
 def login(url: str, key: str):
