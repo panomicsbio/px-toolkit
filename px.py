@@ -10,6 +10,7 @@ import click
 from alive_progress import alive_bar
 
 import app
+from app.common import has_active_runtime
 from registry import register
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -48,34 +49,39 @@ def upload_samples(organism: Literal['human', 'mouse'], type_: Literal['RNA-seq'
     """
 
     auth_config = app.get_auth()
+    ok = has_active_runtime(auth_config)
 
-    files_to_import = []
-    for f in os.listdir(input_dir):
-        pf = Path(os.path.join(input_dir, f))
-        if pf.suffix in ['.zip', '.gz']:
-            files_to_import.append(pf)
+    if ok:
+        files_to_import = []
+        for f in os.listdir(input_dir):
+            pf = Path(os.path.join(input_dir, f))
+            if pf.suffix in ['.zip', '.gz']:
+                files_to_import.append(pf)
 
-    click.echo(f'Found {len(files_to_import)} eligible sample files.')
-    cont = click.prompt('Do you want to continue? y/n', type=click.Choice(['Y', 'N'], case_sensitive=False),
-                        show_choices=False)
-    if cont.lower() == 'y':
-        failed_files = []
-        with alive_bar(len(files_to_import)) as bar:
-            for f in files_to_import:
-                try:
-                    app.upload_sample(auth_config, Path(f), organism, type_, gene_id_col, gene_symbol_col,
-                                      raw_count_col)
-                except:
-                    logging.exception(f'error uploading sample {f}, type {type_}')
-                    failed_files.append(f)
-                bar()
-        if len(failed_files) > 0:
-            click.echo(f"{len(failed_files)} sample files failed to upload")
-            for f in failed_files:
-                click.echo(f)
-            click.echo(f"Check to logs for more details")
+        click.echo(f'Found {len(files_to_import)} eligible sample files.')
+        cont = click.prompt('Do you want to continue? y/n', type=click.Choice(['Y', 'N'], case_sensitive=False),
+                            show_choices=False)
+        if cont.lower() == 'y':
+            failed_files = []
+            with alive_bar(len(files_to_import)) as bar:
+                for f in files_to_import:
+                    try:
+                        app.upload_sample(auth_config, Path(f), organism, type_, gene_id_col, gene_symbol_col,
+                                          raw_count_col)
+                    except:
+                        logging.exception(f'error uploading sample {f}, type {type_}')
+                        failed_files.append(f)
+                    bar()
+            if len(failed_files) > 0:
+                click.echo(f"{len(failed_files)} sample files failed to upload")
+                for f in failed_files:
+                    click.echo(f)
+                click.echo(f"Check to logs for more details")
+        else:
+            sys.exit()
     else:
-        sys.exit()
+        click.echo(
+            "You don't have an active runtime. Please create one or wait for it to become active before uploading samples.")
 
 
 def initialize():

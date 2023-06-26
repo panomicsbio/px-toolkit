@@ -23,6 +23,12 @@ class UploadSampleResponse:
     errorMessage: str
 
 
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class HasActiveRuntimeResponse:
+    has: bool
+
+
 organism_mapping = {
     'human': 'NCBITaxon_9606',
     'mouse': 'NCBITaxon_10090'
