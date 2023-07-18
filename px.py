@@ -23,7 +23,7 @@ def cli():
 
 @cli.command()
 @click.option('-s', '--scheme', type=str, help='The scheme used by the server.', default='https')
-@click.option('-h', '--host', type=str, help='The host of your Panomics server.', default='platform.panomics.bio')
+@click.option('-h', '--host', type=str, help='The host of your Panomics server.', default='api-platform.panomics.bio')
 @click.option('-p', '--port', type=int, help='The server port.', default=443)
 @click.option('-k', '--key', type=str, help='Your api key.', required=True)
 def login(scheme, host, port, key):
@@ -39,12 +39,12 @@ def login(scheme, host, port, key):
 @click.option('-gs', '--gene_symbol_col', type=str, help='The name of the column representing the gene symbol.')
 @click.option('-rc', '--raw_count_col', type=str, help='The name of the column representing the raw count.')
 @click.option('-i', '--input_dir', type=str, help='Absolute path to sample files.', required=True)
+@click.option('-d', '--dry_run', is_flag=True, default=False, help='Dry run.')
 def upload_samples(organism: Literal['human', 'mouse'], type_: Literal['RNA-seq', 'scRNA-seq'],
-                   gene_id_col: str, gene_symbol_col: str, raw_count_col: str, input_dir: str):
+                   gene_id_col: str, gene_symbol_col: str, raw_count_col: str, input_dir: str, dry_run: bool):
     """
     All sample files must be .zip or .gz. Example usage:\n
-    px upload-samples -o human -t RNA-seq -f flat -gid gene_id -rc expected_count -i /home/user/samples \n
-    px upload-samples -o mouse -t RNA-seq -f 2D -gid gene_id -i /home/user/samples \n
+    px upload-samples -o mouse -t RNA-seq -gid gene_id -i /home/user/samples \n
     px upload-samples -o human -t scRNA-seq -i /home/user/samples
     """
 
@@ -66,8 +66,9 @@ def upload_samples(organism: Literal['human', 'mouse'], type_: Literal['RNA-seq'
             with alive_bar(len(files_to_import)) as bar:
                 for f in files_to_import:
                     try:
-                        app.upload_sample(auth_config, Path(f), organism, type_, gene_id_col, gene_symbol_col,
-                                          raw_count_col)
+                        if not dry_run:
+                            app.upload_sample(auth_config, Path(f), organism, type_, gene_id_col, gene_symbol_col,
+                                              raw_count_col)
                     except:
                         logging.exception(f'error uploading sample {f}, type {type_}')
                         failed_files.append(f)
