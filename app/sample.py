@@ -13,7 +13,7 @@ from app.model import AuthConfig, organism_mapping
 def upload_sample(auth_config: AuthConfig, filename: Path, organism: Literal['human', 'mouse'],
                   sample_type: Literal['RNA-seq', 'scRNA-seq'],
                   gene_id_col: str, gene_symbol_col: str, raw_count_col: str, tpm_count_col: str,
-                  fpkm_count_col: str, ):
+                  fpkm_count_col: str, project_id: int):
     files = {'file': open(filename, 'rb')}
     data = {'sampleName': os.path.basename(filename).split(".")[0],
             'sampleType': sample_type,
@@ -23,6 +23,7 @@ def upload_sample(auth_config: AuthConfig, filename: Path, organism: Literal['hu
             'rawCountCol': raw_count_col,
             'tpmCountCol': tpm_count_col,
             'fpkmCountCol': fpkm_count_col,
+            'projectId': project_id,
             'requestId': str(uuid.uuid4())}
     headers = {'Authorization': f'Bearer {auth_config.token}'}
     resp = requests.post(f"{auth_config.url}/private/sample/upload", data=data, files=files, headers=headers)

@@ -40,11 +40,12 @@ def login(scheme, host, port, key):
 @click.option('-rc', '--raw_count_col', type=str, help='The name of the column representing the raw count.')
 @click.option('-tpm', '--tpm_count_col', type=str, help='The name of the column representing the TPM count.')
 @click.option('-fpkm', '--fpkm_count_col', type=str, help='The name of the column representing the TPM count.')
+@click.option('-pid', '--project_id', type=int, help='The ID of the project to which to add these samples.')
 @click.option('-i', '--input_dir', type=str, help='Absolute path to sample files.', required=True)
 @click.option('-d', '--dry_run', is_flag=True, default=False, help='Dry run.')
 def upload_samples(organism: Literal['human', 'mouse'], type_: Literal['RNA-seq', 'scRNA-seq'],
                    gene_id_col: str, gene_symbol_col: str, raw_count_col: str, tpm_count_col: str, fpkm_count_col: str,
-                   input_dir: str, dry_run: bool):
+                   project_id: int, input_dir: str, dry_run: bool):
     """
     All sample files must be .zip or .gz. Example usage:\n
     px upload-samples -o mouse -t RNA-seq -gid gene_id -i /home/user/samples \n
@@ -71,7 +72,7 @@ def upload_samples(organism: Literal['human', 'mouse'], type_: Literal['RNA-seq'
                     try:
                         if not dry_run:
                             app.upload_sample(auth_config, Path(f), organism, type_, gene_id_col, gene_symbol_col,
-                                              raw_count_col, tpm_count_col, fpkm_count_col)
+                                              raw_count_col, tpm_count_col, fpkm_count_col, project_id)
                     except:
                         logging.exception(f'error uploading sample {f}, type {type_}')
                         failed_files.append(f)
