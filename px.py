@@ -31,8 +31,11 @@ def login(scheme, host, port, key):
 
 
 @cli.command()
-@click.option('-o', '--organism', 'organism', type=click.Choice(['human', 'mouse'], case_sensitive=True), required=True,
-              help='Organism: one of human or mouse')
+@click.option('-o', '--organism', 'organism', type=click.Choice(['human', 'mouse'], case_sensitive=True),
+              required=True, help='Organism: one of human or mouse')
+@click.option('-a', '--assembly', 'assembly',
+              type=click.Choice(['GRCh38', 'GRCh37', 'GRCm39', 'GRCm38'], case_sensitive=True), required=True,
+              help='Genome assembly')
 @click.option('-t', '--type', 'type_', type=click.Choice(['RNA-seq', 'scRNA-seq'], case_sensitive=True), required=True,
               help='Sample type: one of RNA-seq or scRNA-seq')
 @click.option('-gid', '--gene_id_col', type=str, help='The name of the column representing the gene ID.')
@@ -43,7 +46,8 @@ def login(scheme, host, port, key):
 @click.option('-pid', '--project_id', type=int, help='The ID of the project to which to add these samples.')
 @click.option('-i', '--input_dir', type=str, help='Absolute path to sample files.', required=True)
 @click.option('-d', '--dry_run', is_flag=True, default=False, help='Dry run.')
-def upload_samples(organism: Literal['human', 'mouse'], type_: Literal['RNA-seq', 'scRNA-seq'],
+def upload_samples(organism: Literal['human', 'mouse'], assembly: Literal['GRCh38', 'GRCh37', 'GRCm39', 'GRCm38'],
+                   type_: Literal['RNA-seq', 'scRNA-seq'],
                    gene_id_col: str, gene_symbol_col: str, raw_count_col: str, tpm_count_col: str, fpkm_count_col: str,
                    project_id: int, input_dir: str, dry_run: bool):
     """
@@ -71,7 +75,7 @@ def upload_samples(organism: Literal['human', 'mouse'], type_: Literal['RNA-seq'
                 for f in files_to_import:
                     try:
                         if not dry_run:
-                            app.upload_sample(auth_config, Path(f), organism, type_, gene_id_col, gene_symbol_col,
+                            app.upload_sample(auth_config, Path(f), organism, assembly, type_, gene_id_col, gene_symbol_col,
                                               raw_count_col, tpm_count_col, fpkm_count_col, project_id)
                     except:
                         logging.exception(f'error uploading sample {f}, type {type_}')

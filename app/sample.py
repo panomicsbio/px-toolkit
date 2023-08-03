@@ -11,6 +11,7 @@ from app.model import AuthConfig, organism_mapping
 
 
 def upload_sample(auth_config: AuthConfig, filename: Path, organism: Literal['human', 'mouse'],
+                  assembly: Literal['GRCh38', 'GRCh37', 'GRCm39', 'GRCm38'],
                   sample_type: Literal['RNA-seq', 'scRNA-seq'],
                   gene_id_col: str, gene_symbol_col: str, raw_count_col: str, tpm_count_col: str,
                   fpkm_count_col: str, project_id: int):
@@ -18,6 +19,7 @@ def upload_sample(auth_config: AuthConfig, filename: Path, organism: Literal['hu
     data = {'sampleName': os.path.basename(filename).split(".")[0],
             'sampleType': sample_type,
             'organism': organism_mapping[organism],
+            'genomeAssembly': assembly,
             'geneIdCol': gene_id_col,
             'geneSymbolCol': gene_symbol_col,
             'rawCountCol': raw_count_col,
