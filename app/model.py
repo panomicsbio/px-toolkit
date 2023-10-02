@@ -31,5 +31,6 @@ class HasActiveRuntimeResponse:
 
 organism_mapping = {
     'human': 'NCBITaxon_9606',
-    'mouse': 'NCBITaxon_10090'
+    'mouse': 'NCBITaxon_10090',
+    'rat': 'NCBITaxon_10116'
 }
