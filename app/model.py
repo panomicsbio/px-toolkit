@@ -29,6 +29,25 @@ class HasActiveRuntimeResponse:
     has: bool
 
 
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class GeneModel:
+    name: str
+    assembly: str
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class GetGeneModelsResponse:
+    geneModels: list[GeneModel]
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class GetAssembliesResponse:
+    assemblies: list[str]
+
+
 organism_mapping = {
     'human': 'NCBITaxon_9606',
     'mouse': 'NCBITaxon_10090',

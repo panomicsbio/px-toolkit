@@ -2,11 +2,11 @@
 
 import logging
 import os
-import sys
 from pathlib import Path
 from typing import Literal
 
 import click
+import pandas as pd
 from alive_progress import alive_bar
 
 import app
@@ -33,64 +33,88 @@ def login(scheme, host, port, key):
 
 
 @cli.command()
-@click.option('-o', '--organism', 'organism', type=click.Choice(['human', 'mouse', 'rat'], case_sensitive=True),
-              required=True, help='Organism: one of human or mouse')
-@click.option('-a', '--assembly', 'assembly',
-              type=click.Choice(['GRCh38', 'GRCh37', 'GRCm39', 'GRCm38', 'Rat Genome 230 2.0 Array'],
-                                case_sensitive=True), required=True, help='Genome assembly')
-@click.option('-t', '--type', 'type_', type=click.Choice(['Microarray', 'RNA-seq', 'scRNA-seq'], case_sensitive=True),
+def list_gene_models():
+    auth_config = app.get_auth()
+    gene_models = app.list_gene_models(auth_config)
+    for gm in gene_models:
+        click.echo(gm.name)
+
+
+@cli.command()
+def list_assemblies():
+    auth_config = app.get_auth()
+    assemblies = app.list_assemblies(auth_config)
+    for a in assemblies:
+        click.echo(a)
+
+
+@cli.command()
+@click.option('-org', '--organism', 'organism',
+              type=click.Choice(['human', 'mouse', 'rat'], case_sensitive=True),
+              required=True, help='Organism: one of human, mouse, or rat')
+@click.option('-a', '--assembly', 'assembly', type=str, required=True,
+              help='Genome assembly: run "list-assemblies" to view supported options')
+@click.option('-gm', '--gene_model', 'gene_model', type=str, required=False,
+              help='Gene model: run "list-gene-models" to view supported options')
+@click.option('-t', '--type', 'type_',
+              type=click.Choice(['Microarray', 'RNA-seq', 'scRNA-seq'], case_sensitive=True),
               required=True, help='Sample type: one of Microarray, RNA-seq, or scRNA-seq')
-@click.option('-gid', '--gene_id_col', type=str, help='The name of the column representing the gene ID.')
-@click.option('-gs', '--gene_symbol_col', type=str, help='The name of the column representing the gene symbol.')
-@click.option('-rc', '--raw_count_col', type=str, help='The name of the column representing the raw count.')
-@click.option('-tpm', '--tpm_count_col', type=str, help='The name of the column representing the TPM count.')
-@click.option('-fpkm', '--fpkm_count_col', type=str, help='The name of the column representing the TPM count.')
-@click.option('-pid', '--project_id', type=int, help='The ID of the project to which to add these samples.')
+@click.option('-g', '--gene_col', type=str,
+              help='The name of the column representing the gene symbol. '
+                   'If your sample use gene IDs, please provide a gene model as well.')
+@click.option('-rc', '--raw_count_col', type=str,
+              help='RNA-seq only: The name of the column representing the raw count.')
+@click.option('-tpm', '--tpm_count_col', type=str,
+              help='RNA-seq only: The name of the column representing the TPM count.')
+@click.option('-fpkm', '--fpkm_count_col', type=str,
+              help='RNA-seq only: The name of the column representing the TPM count.')
 @click.option('-i', '--input_dir', type=str, help='Absolute path to sample files.', required=True)
+@click.option('-o', '--output_file', type=str, help='Absolute path to where the sample sheet will be created.',
+              required=False)
+def generate_sample_sheet(organism: Literal['human', 'mouse', 'rat'], assembly: str, gene_model: str,
+                          type_: Literal['Microarray', 'RNA-seq', 'scRNA-seq'],
+                          gene_col: str, raw_count_col: str, tpm_count_col: str, fpkm_count_col: str,
+                          input_dir: str, output_file: str):
+    files_to_import = []
+    for f in os.listdir(input_dir):
+        pf = Path(os.path.join(input_dir, f))
+        if pf.suffix in ['.zip', '.gz']:
+            files_to_import.append(pf)
+
+    click.echo(f'Found {len(files_to_import)} eligible sample files.')
+    app.generate_sample_sheet(organism, assembly, gene_model, type_,
+                              gene_col, raw_count_col, tpm_count_col, fpkm_count_col,
+                              files_to_import, output_file)
+
+
+@cli.command()
+@click.option('-pid', '--project_id', type=int, help='The ID of the project to which to add these samples.')
+@click.option('-ss', '--sample_sheet', type=str, help='Absolute path to the sample sheet.', required=True)
 @click.option('-d', '--dry_run', is_flag=True, default=False, help='Dry run.')
-def upload_samples(organism: Literal['human', 'mouse'], assembly: Literal['GRCh38', 'GRCh37', 'GRCm39', 'GRCm38'],
-                   type_: Literal['Microarray', 'RNA-seq', 'scRNA-seq'],
-                   gene_id_col: str, gene_symbol_col: str, raw_count_col: str, tpm_count_col: str, fpkm_count_col: str,
-                   project_id: int, input_dir: str, dry_run: bool):
-    """
-    All sample files must be .zip or .gz. Example usage:\n
-    px upload-samples -o mouse -t RNA-seq -gid gene_id -i /home/user/samples \n
-    px upload-samples -o human -t scRNA-seq -i /home/user/samples
-    """
+def upload_samples(project_id: int, sample_sheet: str, dry_run: bool):
+    """Example usage: px upload-samples -pid 1 -ss /home/user/sample_sheet.csv"""
 
     auth_config = app.get_auth()
     ok = has_active_runtime(auth_config)
 
     if ok:
-        files_to_import = []
-        for f in os.listdir(input_dir):
-            pf = Path(os.path.join(input_dir, f))
-            if pf.suffix in ['.zip', '.gz']:
-                files_to_import.append(pf)
+        sample_sheet = pd.read_csv(sample_sheet)
+        failed_files = []
+        with alive_bar(sample_sheet.shape[0]) as bar:
+            for i in range(0, sample_sheet.shape[0]):
+                try:
+                    if not dry_run:
+                        app.upload_sample(auth_config, sample_sheet.iloc[i], project_id)
+                except:
+                    logging.exception(f'error uploading sample {sample_sheet.iloc[i]["file"]}')
+                    failed_files.append(sample_sheet.iloc[i]["file"])
+                bar()
 
-        click.echo(f'Found {len(files_to_import)} eligible sample files.')
-        cont = click.prompt('Do you want to continue? y/n', type=click.Choice(['Y', 'N'], case_sensitive=False),
-                            show_choices=False)
-        if cont.lower() == 'y':
-            failed_files = []
-            with alive_bar(len(files_to_import)) as bar:
-                for f in files_to_import:
-                    try:
-                        if not dry_run:
-                            app.upload_sample(auth_config, Path(f), organism, assembly, type_, gene_id_col,
-                                              gene_symbol_col,
-                                              raw_count_col, tpm_count_col, fpkm_count_col, project_id)
-                    except:
-                        logging.exception(f'error uploading sample {f}, type {type_}')
-                        failed_files.append(f)
-                    bar()
-            if len(failed_files) > 0:
-                click.echo(f"{len(failed_files)} sample files failed to upload")
-                for f in failed_files:
-                    click.echo(f)
-                click.echo(f"Check to logs for more details")
-        else:
-            sys.exit()
+        if len(failed_files) > 0:
+            click.echo(f"{len(failed_files)} sample files failed to upload")
+            for f in failed_files:
+                click.echo(f)
+            click.echo(f"Check the logs for more details")
     else:
         click.echo(
             "You don't have an active runtime. Please create one or wait for it to become active before uploading samples.")

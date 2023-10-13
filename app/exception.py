@@ -21,3 +21,23 @@ class NoActiveRuntimeException(Exception):
 class RuntimeStatusCheckException(Exception):
     """Raised when cannot check the runtime status"""
     pass
+
+
+class GetGeneModelsException(Exception):
+    """Raised if the gene models cannot be retrieved"""
+    pass
+
+
+class GetAssembliesException(Exception):
+    """Raised if the assemblies cannot be retrieved"""
+    pass
+
+
+class InvalidOutputFileException(Exception):
+    """Raised if an output file is not a valid location"""
+    pass
+
+
+class MissingAttributesException(Exception):
+    """Raised if an input is missing certain attributes"""
+    pass
