@@ -57,7 +57,7 @@ def list_assemblies():
 @click.option('-gm', '--gene_model', 'gene_model', type=str, required=False,
               help='Gene model: run "list-gene-models" to view supported options')
 @click.option('-t', '--type', 'type_',
-              type=click.Choice(['Microarray', 'RNA-seq', 'scRNA-seq'], case_sensitive=True),
+              type=click.Choice(['Microarray', 'RNA-seq', 'scRNA-seq', 'snRNA-seq'], case_sensitive=True),
               required=True, help='Sample type: one of Microarray, RNA-seq, or scRNA-seq')
 @click.option('-g', '--gene_col', type=str,
               help='The name of the column representing the gene symbol. '
@@ -72,7 +72,7 @@ def list_assemblies():
 @click.option('-o', '--output_file', type=str, help='Absolute path to where the sample sheet will be created.',
               required=False)
 def generate_sample_sheet(organism: Literal['human', 'mouse', 'rat'], assembly: str, gene_model: str,
-                          type_: Literal['Microarray', 'RNA-seq', 'scRNA-seq'],
+                          type_: Literal['Microarray', 'RNA-seq', 'scRNA-seq', 'snRNA-seq'],
                           gene_col: str, raw_count_col: str, tpm_count_col: str, fpkm_count_col: str,
                           input_dir: str, output_file: str):
     files_to_import = []
@@ -97,7 +97,7 @@ def upload_samples(project_id: int, sample_sheet: str, dry_run: bool):
     auth_config = app.get_auth()
     ok = has_active_runtime(auth_config)
 
-    if ok:
+    if not ok:
         sample_sheet = pd.read_csv(sample_sheet)
         failed_files = []
         with alive_bar(sample_sheet.shape[0]) as bar:
