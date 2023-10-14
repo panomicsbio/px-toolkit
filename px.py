@@ -97,7 +97,7 @@ def upload_samples(project_id: int, sample_sheet: str, dry_run: bool):
     auth_config = app.get_auth()
     ok = has_active_runtime(auth_config)
 
-    if not ok:
+    if ok:
         sample_sheet = pd.read_csv(sample_sheet)
         failed_files = []
         with alive_bar(sample_sheet.shape[0]) as bar:
