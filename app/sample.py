@@ -44,6 +44,7 @@ def upload_sample(auth_config: AuthConfig, entry, project_id: int):
             'sampleType': entry['sample_type'],
             'organism': organism_mapping[entry['organism']],
             'genomeAssembly': entry['assembly'],
+            'geneModelName': entry['gene_model'] if 'gene_model' in entry else '',
             'geneCol': entry['gene_col'] if 'gene_col' in entry else '',
             'rawCountCol': entry['raw_count_col'] if 'raw_count_col' in entry else '',
             'tpmCountCol': entry['tpm_count_col'] if 'tpm_count_col' in entry else '',
